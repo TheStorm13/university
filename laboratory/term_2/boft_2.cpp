@@ -1,82 +1,163 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-//#include <Windows.h>
 
-char *input(int &sizeArray) {
-    char *array;
-    sizeArray = 0;
+char *input(int &size_text) {
+    char *text;
+    size_text = 0;
 
     std::ifstream infile;
-    infile.open("input.txt");
+    infile.open("input.txt", infile.binary);
 
     if (infile.is_open()) {
-        while (!infile.eof()) {
-            infile.get();
-            ++sizeArray;
-        }
+        infile.seekg(0, infile.end);
+        size_text = infile.tellg();
 
-        infile.clear();//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-        infile.seekg(0, infile.beg);//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        infile.clear();
+        infile.seekg(0, infile.beg);
 
-        array = new char[sizeArray];
+        text = new char[size_text + 1];
 
 
-        infile.getline(array, sizeArray, '\0');
+        infile.getline(text, size_text + 1, '\0');
     }
-    --sizeArray;
+    //text[size_text]='\0';
     infile.close();
-    return array;
+    return text;
 }
 
-bool checkAlpha(char symbol) {
-    return (('ï¿½' <= symbol && symbol <= 'ï¿½') || symbol == 'ï¿½' || symbol == 'ï¿½');
+bool isAlpha(char symbol) {
+    return (('À' <= symbol && symbol <= 'ÿ') || symbol == '¸' || symbol == '¨');
 }
 
-std::vector<char *> checkPalindrome(const char *array, const int sizeArray) {
-    int startSymbol = 0;
-    int endSymbol;
+bool isSeparator(char symbol) {
+    return symbol == ' ' || symbol == '\0' || symbol == '\n' || symbol == '\r' || symbol == '\t';
+}
+
+struct machine {
+    char symbol;
+    int len = 0;
+};
+enum signals {
+    a, b, c
+};
+enum states {
+    first, second, third, error
+};
+
+std::vector<char *> isPalindrom(const char *text, const int size_text) {
+    states automat[3][6];
+    automat[a][first] = first;
+    automat[a][second] = first;
+    automat[a][third] = error;
+    automat[a][error] = error;
+
+
+    automat[b][first] = second;
+    automat[b][second] = second;
+    automat[b][third] = second;
+    automat[b][error] = error;
+
+    automat[c][first] = error;
+    automat[c][second] = third;
+    automat[c][third] = third;
+    automat[c][error] = error;
+
+
+    int len = 0;
+    int start_symbol = 0;
+
     char *word;
-    int sizeWord;
-    bool palindrome = true;
     std::vector<char *> dictionary;
 
+    char currect_symbol;
+    machine automat_first, automat_second, automat_third;
 
-    for (int i = 0; i < sizeArray; ++i) {
-        palindrome = true;
-        if (array[i] == '\n' or array[i] == '\t' or array[i] == ' ' or array[i] == '\0') {
-            endSymbol = i - 1;
-            sizeWord = endSymbol - startSymbol + 1;
+    automat_first.symbol = automat_second.symbol = automat_third.symbol = 0;
+    states currect_state = first;
 
-            word = new char[sizeWord + 1];
 
-            if (0 < sizeWord and sizeWord > 6)
-                palindrome = false;
+    automat_first.symbol = text[start_symbol];
 
-            if (array[startSymbol] == '\n' or array[startSymbol] == '\t' or array[startSymbol] == ' ' or
-                array[startSymbol] == '\0')
-                palindrome = false;
+    for (int i = 0; i < size_text; ++i) {
+        if (isSeparator(text[i])) {
+            if (currect_state == first || (currect_state == third && automat_first.symbol == automat_third.symbol)) {
+                word = new char[len + 1];
+                for (int j = start_symbol; j < i; ++j) {
+                    word[j - start_symbol] = text[j];
+                }
+                word[i - start_symbol] = '\0';
+                dictionary.push_back(word);
 
-            for (int j = 0; endSymbol - startSymbol >= 0 and palindrome == true; ++startSymbol, --endSymbol, ++j) {
-                if (tolower(array[startSymbol]) != tolower(array[endSymbol]) or
-                    isalpha(array[startSymbol]) or !checkAlpha(array[startSymbol]))
-                    palindrome = false;
-                else {
-                    *(word + j) = array[startSymbol];
-                    *(word + sizeWord - j - 1) = array[endSymbol];
+                start_symbol = i < size_text - 1 ? i + 1 : 1;
+                automat_first.symbol = text[start_symbol];
+                len = 0;
+
+            }
+            currect_state == first;
+        } else if (isAlpha(text[i])) {
+            ++len;
+            currect_symbol = text[i];
+
+            if (len > 6 || !isAlpha(currect_symbol))
+                currect_state = error;
+
+            if (automat_first.symbol == currect_symbol) {
+                currect_state = automat[a][currect_state];
+            } else {
+                if (automat_second.symbol) {
+                    if (automat_second.symbol == currect_symbol) {
+                        currect_state = automat[b][currect_state];
+                    } else {
+                        if (automat_third.symbol) {
+                            if (automat_third.symbol == currect_symbol)
+                                currect_state = automat[c][currect_state];
+                            else {
+                                currect_state = error;
+                            }
+                        } else {
+                            automat_third.symbol = currect_symbol;
+                            currect_state = automat[c][currect_state];
+                        }
+                    }
+                } else {
+                    automat_second.symbol = currect_symbol;
+                    currect_state = automat[b][currect_state];
                 }
             }
-            word[sizeWord] = '\0';
-            startSymbol = i + 1;
-            if (palindrome == true) {
-                dictionary.push_back(word);
-            } else
-                delete[] word;
-        }
 
+/*
+            if (automat_second.symbol) {
+                if (automat_second.symbol == currect_symbol)
+                    currect_state = automat[b][currect_state];
+                else {
+                    if (automat_third.symbol) {
+                        if (automat_third.symbol == currect_symbol)
+                            currect_state = automat[c][currect_state];
+                        else if (automat_first.symbol == currect_symbol) {
+                            currect_state = automat[a][currect_state];
+                        } else {
+                            currect_state = error;
+                        }
+                    } else {
+                        automat_third.symbol = currect_symbol;
+                        currect_state = automat[c][currect_state];
+                    }
+                }
+            } else if (automat_first.symbol == currect_symbol) {
+                currect_state = automat[a][currect_state];
+            } else {
+                automat_second.symbol = currect_symbol;
+                currect_state = automat[b][currect_state];
+            }
+        } else
+            currect_state = error;
+
+    }*/}
     }
     return dictionary;
 }
+
 
 void print(std::vector<char *> dictionary) {
     std::ofstream outfile;
@@ -88,16 +169,13 @@ void print(std::vector<char *> dictionary) {
 }
 
 int main() {
-    /*setlocale(LC_ALL,"Rus");
-    SetConsoleCP(1251);
-    SetConsoleOutputCP(1251);*/
-
+    setlocale(LC_ALL, "Russian");
     char *text;
-    int sizeText;
+    int size_text;
     std::vector<char *> dictionary;
 
-    text = input(sizeText);
-    dictionary = checkPalindrome(text, sizeText);
+    text = input(size_text);
+    dictionary = isPalindrom(text, size_text);
     print(dictionary);
     for (unsigned int i = 0; i < dictionary.size(); ++i) {
         delete[] dictionary[i];
