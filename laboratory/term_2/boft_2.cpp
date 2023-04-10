@@ -2,7 +2,7 @@
 #include <fstream>
 #include <vector>
 
-char *input(int &size_text) {
+char *input(int &size_text) {// читаем из файла
     char *text;
     size_text = 0;
 
@@ -11,7 +11,7 @@ char *input(int &size_text) {
 
     if (infile.is_open()) {
         infile.seekg(0, infile.end);
-        size_text = infile.tellg();
+        size_text = infile.tellg();// считаем размер
 
         infile.clear();
         infile.seekg(0, infile.beg);
@@ -21,20 +21,20 @@ char *input(int &size_text) {
 
         infile.getline(text, size_text + 1, '\0');
     }
-    //text[size_text]='\0';
     infile.close();
     return text;
 }
 
-bool isAlpha(char symbol) {
+bool isAlpha(char symbol) {// проверка на руские буквы
     return (('А' <= symbol && symbol <= 'я') || symbol == 'ё' || symbol == 'Ё');
 }
 
-bool isSeparator(char symbol) {
-    return symbol == ' ' || symbol == '\0' || symbol == '\n' || symbol == '\r' || symbol == '\t';
+bool isSeparator(char symbol) {// проверка на разделитель
+    return symbol == ' ' || symbol == '\0' || symbol == '\n' || symbol == '\r' || symbol == '\t' || symbol == '\\' ||
+           symbol == 't';
 }
 
-struct machine {
+struct machine {// автомат
     char symbol;
     int len = 0;
 };
@@ -73,14 +73,13 @@ std::vector<char *> isPalindrom(const char *text, const int size_text) {
     char currect_symbol;
     machine automat_first, automat_second, automat_third;
 
-    automat_first.symbol = automat_second.symbol = automat_third.symbol = 0;
-    states currect_state = first;
 
+    states currect_state = error;
 
     automat_first.symbol = text[start_symbol];
 
-    for (int i = 0; i < size_text; ++i) {
-        if (isSeparator(text[i])) {
+    for (int i = 0; i < size_text + 1; ++i) {
+        if (isSeparator(text[i])) {// если встретился сепаратор
             if (currect_state == first || (currect_state == third && automat_first.symbol == automat_third.symbol)) {
                 word = new char[len + 1];
                 for (int j = start_symbol; j < i; ++j) {
@@ -88,45 +87,47 @@ std::vector<char *> isPalindrom(const char *text, const int size_text) {
                 }
                 word[i - start_symbol] = '\0';
                 dictionary.push_back(word);
-
-                start_symbol = i < size_text - 1 ? i + 1 : 1;
+                currect_state = error;
+            }
+        } else if (isAlpha(text[i])) {// если встретилась буква
+            if ((i - 1 != 0 && isSeparator(text[i - 1])) || i == 0) {
+                currect_state = first;
+                start_symbol = i;
+                automat_second.symbol = automat_third.symbol = 0;
                 automat_first.symbol = text[start_symbol];
                 len = 0;
-
             }
-            currect_state == first;
-        } else if (isAlpha(text[i])) {
             ++len;
             currect_symbol = text[i];
 
-            if (len > 6 || !isAlpha(currect_symbol))
+            if (len > 6)
                 currect_state = error;
 
-            if (automat_first.symbol == currect_symbol) {
-                currect_state = automat[a][currect_state];
-            } else {
-                if (automat_second.symbol) {
-                    if (automat_second.symbol == currect_symbol) {
-                        currect_state = automat[b][currect_state];
-                    } else {
-                        if (automat_third.symbol) {
-                            if (automat_third.symbol == currect_symbol)
-                                currect_state = automat[c][currect_state];
-                            else {
-                                currect_state = error;
-                            }
-                        } else {
-                            automat_third.symbol = currect_symbol;
-                            currect_state = automat[c][currect_state];
-                        }
-                    }
-                } else {
-                    automat_second.symbol = currect_symbol;
-                    currect_state = automat[b][currect_state];
-                }
-            }
-
-/*
+            /*           if (automat_first.symbol == currect_symbol) {
+                           currect_state = automat[a][currect_state];
+                       } else {
+                           if (automat_second.symbol) {
+                               if (automat_second.symbol == currect_symbol) {
+                                   currect_state = automat[b][currect_state];
+                               } else {
+                                   if (automat_third.symbol) {
+                                       if (automat_third.symbol == currect_symbol)
+                                           currect_state = automat[c][currect_state];
+                                       else {
+                                           currect_state = error;
+                                       }
+                                   } else {
+                                       automat_third.symbol = currect_symbol;
+                                       currect_state = automat[c][currect_state];
+                                   }
+                               }
+                           } else {
+                               automat_second.symbol = currect_symbol;
+                               currect_state = automat[b][currect_state];
+                           }
+                       }
+           */
+// проверка нынешнего символа с уже имеющимися в автомате и при необходимости его добавления
             if (automat_second.symbol) {
                 if (automat_second.symbol == currect_symbol)
                     currect_state = automat[b][currect_state];
@@ -153,7 +154,6 @@ std::vector<char *> isPalindrom(const char *text, const int size_text) {
         } else
             currect_state = error;
 
-    }*/}
     }
     return dictionary;
 }
@@ -169,7 +169,7 @@ void print(std::vector<char *> dictionary) {
 }
 
 int main() {
-    setlocale(LC_ALL, "Russian");
+
     char *text;
     int size_text;
     std::vector<char *> dictionary;
