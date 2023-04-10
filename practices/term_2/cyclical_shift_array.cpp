@@ -14,9 +14,8 @@ void swap(int *array, int i, int j) {
 }
 
 void reverse(int *array, int begin, int end) {
-    int mid = end - begin;
-    for (int i = 0; i < (mid + 1) / 2; ++i) {
-        swap(array, begin + i, end - i);
+    for (; begin < end; ++begin, --end) {
+        swap(array, begin, end);
     }
 }
 
